@@ -6,15 +6,22 @@
     <artifactId>gulimall-ware</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>gulimall-ware</name>
-    <description>gulimall-ware</description>
+    <description>谷粒商城-库存系统</description>
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <spring-boot.version>2.1.8.RELEASE</spring-boot.version>
-        <spring-cloud.version>Hoxton.SR12</spring-cloud.version>
+        <spring-cloud.version>Greenwich.SR3</spring-cloud.version>
     </properties>
     <dependencies>
+        <!-- 通用依赖 -->
+        <dependency>
+            <groupId>com.lin.gulimall.common</groupId>
+            <artifactId>gulimall-common</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -72,7 +79,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>com.lin.gulimall.lware.GulimallWareApplication</mainClass>
+                    <mainClass>com.lin.gulimall.ware.GulimallWareApplication</mainClass>
                     <skip>true</skip>
                 </configuration>
                 <executions>

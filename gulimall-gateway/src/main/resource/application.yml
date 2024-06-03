@@ -1,0 +1,41 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+        #        - id: test_router
+        #          uri: http://www.baidu.com
+        #          predicates:
+        #            - Query=url,baidu
+        #        - id: qq_router
+        #          uri: http://www.qq.com
+        #          predicates:
+        #            - Query=url,qq
+
+        - id: product-router
+          uri: lb://gulimall-product
+          predicates:
+            - Path=/api/product/**
+          filters:
+            - RewritePath=/api/(?<segment>/?.*),/$\{segment}
+
+        # 会员路由
+        - id: member-router
+          uri: lb://gulimall-member
+          predicates:
+            - Path=/api/member/**
+          filters:
+            - RewritePath=/api/(?<segment>/?.*),/$\{segment}
+
+        - id: third-party-router
+          uri: lb://gulimall-third-party
+          predicates:
+            - Path=/api/thirdparty/**
+          filters:
+            - RewritePath=/api/thirdparty/(?<segment>/?.*),/$\{segment}
+
+        - id: admin_router
+          uri: lb://renren-fast
+          predicates:
+            - Path=/api/**
+          filters:
+            - RewritePath=/api/(?<segment>/?.*),/renren-fast/$\{segment}
