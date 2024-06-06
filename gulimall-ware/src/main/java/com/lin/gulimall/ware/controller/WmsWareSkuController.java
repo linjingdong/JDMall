@@ -25,7 +25,7 @@ import com.lin.common.utils.R;
  * @date 2024-05-22 13:21:11
  */
 @RestController
-@RequestMapping("ware/wmswaresku")
+@RequestMapping("ware/waresku")
 public class WmsWareSkuController {
     @Autowired
     private WmsWareSkuService wmsWareSkuService;
@@ -40,7 +40,6 @@ public class WmsWareSkuController {
 
         return R.ok().put("page", page);
     }
-
 
     /**
      * 信息

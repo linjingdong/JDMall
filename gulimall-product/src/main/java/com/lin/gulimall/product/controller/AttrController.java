@@ -1,10 +1,14 @@
 package com.lin.gulimall.product.controller;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
+import com.lin.gulimall.product.entity.ProductAttrValueEntity;
+import com.lin.gulimall.product.service.ProductAttrValueService;
 import com.lin.gulimall.product.vo.AttrRespVo;
 import com.lin.gulimall.product.vo.AttrVo;
+import com.sun.org.apache.xerces.internal.impl.dv.dtd.ENTITYDatatypeValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +31,15 @@ import org.w3c.dom.Attr;
 public class AttrController {
     @Autowired
     private AttrService attrService;
+    @Autowired
+    private ProductAttrValueService productAttrValueService;
+
+    @GetMapping("/base/listforspu/{spuId}")
+    public R baseAttrListForSpu(@PathVariable("spuId") String spuId) {
+        List<ProductAttrValueEntity> entities = productAttrValueService.baseAttrListForSpu(spuId);
+
+        return R.ok().put("data", entities);
+    }
 
     /**
      * 查询规格属性或者销售属性数据并且实现模糊查询
@@ -82,6 +95,14 @@ public class AttrController {
     public R update(@RequestBody AttrVo attrVo) {
         attrService.udpateAttr(attrVo);
 
+        return R.ok();
+    }
+
+    @PostMapping("/update/{spuId}")
+    public R updateSpuAttr(@PathVariable("spuId") Long spuId,
+                           @RequestBody List<ProductAttrValueEntity> entities) {
+
+        productAttrValueService.updateSpuAttr(spuId, entities);
         return R.ok();
     }
 

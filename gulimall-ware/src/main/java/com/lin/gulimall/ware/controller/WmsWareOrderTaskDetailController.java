@@ -25,7 +25,7 @@ import com.lin.common.utils.R;
  * @date 2024-05-22 13:21:11
  */
 @RestController
-@RequestMapping("ware/wmswareordertaskdetail")
+@RequestMapping("ware/wareordertaskdetail")
 public class WmsWareOrderTaskDetailController {
     @Autowired
     private WmsWareOrderTaskDetailService wmsWareOrderTaskDetailService;

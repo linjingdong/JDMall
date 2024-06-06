@@ -91,6 +91,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
             productAttrValue.setAttrName(attrEntity.getAttrName());
             productAttrValue.setAttrValue(attr.getAttrValues());
             productAttrValue.setQuickShow(attr.getShowDesc());
+            productAttrValue.setSpuId(spuInfoEntity.getId());
 
             return productAttrValue;
         }).collect(Collectors.toList());
@@ -126,8 +127,8 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
                 SkuInfoEntity skuInfoEntity = new SkuInfoEntity();
                 BeanUtils.copyProperties(item, skuInfoEntity);
-                skuInfoEntity.setBrandId(skuInfoEntity.getBrandId());
-                skuInfoEntity.setCatalogId(skuInfoEntity.getCatalogId());
+                skuInfoEntity.setBrandId(spuInfoEntity.getBrandId());
+                skuInfoEntity.setCatalogId(spuInfoEntity.getCatalogId());
                 skuInfoEntity.setSaleCount(0L);
                 skuInfoEntity.setSpuId(spuInfoEntity.getId());
                 skuInfoEntity.setSkuDefaultImg(defaultImage);
@@ -199,12 +200,12 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         }
 
         String brandId = (String) params.get("brandId");
-        if (StringUtils.isNotEmpty(brandId)) {
+        if (StringUtils.isNotEmpty(brandId) && !"0".equalsIgnoreCase(brandId)) {
             queryWrapper.eq("brand_id", brandId);
         }
 
         String catelogId = (String) params.get("catelogId");
-        if (StringUtils.isNotEmpty(catelogId)) {
+        if (StringUtils.isNotEmpty(catelogId) && !"0".equalsIgnoreCase(catelogId)) {
             queryWrapper.eq("catalog_id", catelogId);
         }
 
@@ -212,7 +213,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         IPage<SpuInfoEntity> page = this.page(
                 new Query<SpuInfoEntity>().getPage(params),
                 queryWrapper
-                );
+        );
 
         return new PageUtils(page);
     }

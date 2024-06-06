@@ -19,6 +19,5 @@ public class ProductConstant {
             this.code = code;
             this.msg = msg;
         }
-
     }
 }
