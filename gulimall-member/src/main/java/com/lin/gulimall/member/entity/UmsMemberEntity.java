@@ -93,4 +93,11 @@ public class UmsMemberEntity implements Serializable {
 	 */
 	private Date createTime;
 
+	/**
+	 * 以下三个是新增的社交用户唯一标识
+	 */
+	private String socialUid;
+	private String accessToken;
+	private String expiresIn;
+
 }

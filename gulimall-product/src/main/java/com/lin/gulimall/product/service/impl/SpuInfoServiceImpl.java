@@ -1,22 +1,26 @@
 package com.lin.gulimall.product.service.impl;
 
-import com.fasterxml.jackson.databind.util.BeanUtil;
+import com.alibaba.fastjson.TypeReference;
+import com.lin.common.constant.ProductConstant;
+import com.lin.common.to.SkuHasStockVo;
 import com.lin.common.to.SkuReductionTo;
 import com.lin.common.to.SpuBoundTo;
+import com.lin.common.to.es.SkuEsModel;
 import com.lin.common.utils.R;
 import com.lin.gulimall.product.entity.*;
 import com.lin.gulimall.product.feign.CouponFeignService;
+import com.lin.gulimall.product.feign.SearchFeignService;
+import com.lin.gulimall.product.feign.WareFeignService;
 import com.lin.gulimall.product.service.*;
 import com.lin.gulimall.product.vo.*;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -30,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 
+@Slf4j
 @Service("spuInfoService")
 public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> implements SpuInfoService {
     @Autowired
@@ -48,6 +53,14 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     private SkuSaleAttrValueService skuSaleAttrValueService;
     @Autowired
     private CouponFeignService couponFeignService;
+    @Autowired
+    private BrandService brandService;
+    @Autowired
+    private CategoryService categoryService;
+    @Autowired
+    private WareFeignService wareFeignService;
+    @Autowired
+    private SearchFeignService searchFeignService;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -216,5 +229,101 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         );
 
         return new PageUtils(page);
+    }
+
+
+    @Override
+    public void up(Integer spuId) {
+        // 1.查出当前spuId对应的所有sku信息，品牌和名字
+        List<SkuInfoEntity> skus = skuInfoService.getSkusBySpuId(spuId);
+
+        // 收集SkuId
+        List<Long> skuIdsList = skus.stream().map(SkuInfoEntity::getSkuId).collect(Collectors.toList());
+
+        // 查询当前SKU当前的所有可以被用来检索的规格属性
+        List<ProductAttrValueEntity> baseAttrsForEs = productAttrValueService.baseAttrListForSpu(String.valueOf(spuId)); // 查出所有的基于SPU的属性
+        List<Long> attrIds = baseAttrsForEs.stream()
+                .map(attr -> {
+                    return attr.getAttrId();
+                }).collect(Collectors.toList());
+        List<Long> attrIdsForSearch = attrService.selectSearchAttrs(attrIds); // 查出可以被用来检索的属性
+
+        Set<Long> searchIdsSet = new HashSet<>(attrIdsForSearch);
+        List<SkuEsModel.Attrs> attrsListForEs = baseAttrsForEs.stream().filter(item -> {
+            return searchIdsSet.contains(item.getAttrId()); // 用contains（）在所有属性当中过滤出可以用来检索的属性
+        }).map(item -> {
+            SkuEsModel.Attrs attrsForEs = new SkuEsModel.Attrs();
+            BeanUtils.copyProperties(item, attrsForEs); // 拷贝为ES需要用的检索属性
+            return attrsForEs;
+        }).collect(Collectors.toList());
+
+        // 发送远程调用，查看库存
+        Map<Long, Boolean> stockMap = null;
+        try {
+            R r = wareFeignService.getSkusHasStock(skuIdsList);
+            TypeReference<List<SkuHasStockVo>> typeReference = new TypeReference<List<SkuHasStockVo>>() {};
+            stockMap = r.getData(typeReference).stream().collect(Collectors.toMap(SkuHasStockVo::getSkuId, SkuHasStockVo::isHasStock));
+        } catch (Exception e) {
+            log.error("库存服务查询异常：原因：{}" + e);
+        }
+
+        Map<Long, Boolean> finalStockMap = stockMap;
+        // 2.封装每个sku的信息
+        List<SkuEsModel> upProducts = skus.stream().map(sku -> {
+            // 组装需要的数据
+            SkuEsModel esModel = new SkuEsModel();
+            BeanUtils.copyProperties(sku, esModel); // 属性对拷，但还有一些数据需要自己处理
+            // 以下是自行处理的数据
+            esModel.setSkuPrice(sku.getPrice());
+            esModel.setSkuImg(sku.getSkuDefaultImg());
+            // esModel.setHasStock():布尔值判断是否有库存(设置库存信息)
+            if (finalStockMap == null) {
+                esModel.setHasStock(true);
+            } else {
+                esModel.setHasStock(finalStockMap.get(sku.getSkuId()));
+            }
+
+            // esModel.setHotScore():热度评分（默认为0
+            esModel.setHotScore(0L);
+
+            // 处理品牌和分类的名字信息
+            BrandEntity brandForEs = brandService.getById(esModel.getBrandId());
+            esModel.setBrandName(brandForEs.getName());
+            esModel.setBrandImg(brandForEs.getLogo());
+            esModel.setCatalogName(categoryService.getById(esModel.getCatalogId()).getName());
+
+            // 设置为ES需要用的检索属性
+            esModel.setAttrs(attrsListForEs);
+
+            return esModel;
+        }).collect(Collectors.toList());
+
+        // 将所有通过search服务发送给es进行保存
+        R r = searchFeignService.productStatusUp(upProducts);
+
+        if (r.getCode() == 0) {
+            // 远程调用成功
+            // 修改当前SPU的状态：pms_spu_info（publish_status）
+            baseMapper.updateSpuStatus(spuId, ProductConstant.SpuStatus.SPU_UP.getCode());
+        } else {
+            // 远程调用失败
+            // TODO:重复调用：接口幂等性？重试机制？
+            /**
+             * 1、构造请求数据，将对象转为json；
+             *      RequestTemplate template = buildRequestTemplateFromArgs.create(avg);
+             * 2、发送请求执行（执行成功后会解码响应数据）
+             *      executeAndDecode(template);
+             * 3、执行请求会有重试机制
+             *      while(true) {
+             *          try{
+             *              executeAndDecode(template);
+             *              } catch() {
+             *                  try{
+             *                      retryer.continueOrPropagate(e);} catch(Exception) {throw ex;}
+             *                      continue;
+             *              }
+             *          }
+             */
+        }
     }
 }

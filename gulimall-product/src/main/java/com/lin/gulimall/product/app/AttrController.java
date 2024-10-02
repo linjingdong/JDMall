@@ -1,4 +1,4 @@
-package com.lin.gulimall.product.controller;
+package com.lin.gulimall.product.app;
 
 import java.util.Arrays;
 import java.util.List;
@@ -8,15 +8,12 @@ import com.lin.gulimall.product.entity.ProductAttrValueEntity;
 import com.lin.gulimall.product.service.ProductAttrValueService;
 import com.lin.gulimall.product.vo.AttrRespVo;
 import com.lin.gulimall.product.vo.AttrVo;
-import com.sun.org.apache.xerces.internal.impl.dv.dtd.ENTITYDatatypeValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import com.lin.gulimall.product.entity.AttrEntity;
 import com.lin.gulimall.product.service.AttrService;
 import com.lin.common.utils.PageUtils;
 import com.lin.common.utils.R;
-import org.w3c.dom.Attr;
 
 
 /**

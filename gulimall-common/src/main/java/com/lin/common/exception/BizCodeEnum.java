@@ -1,5 +1,7 @@
 package com.lin.common.exception;
 
+import lombok.Getter;
+
 /**
  * @Description 错误码和错误信息定义类
  * 1. 错误码定义规则为5为数字
@@ -8,31 +10,33 @@ package com.lin.common.exception;
  * 错误码列表：
  * 10: 通用
  * 001：参数格式校验
+ * 002: 短信发送频率太高
  * 11: 商品
  * 12: 订单
  * 13: 购物车
  * 14: 物流
+ * 15: 用户
  * @Date 2024/5/29 19:36
  * @Author Lin
  * @Version 1.0
  */
+@Getter
 public enum BizCodeEnum {
     UNKNOWN_EXCEPTION(10000, "系统未知异常"),
-    VAILD_EXCEPTION(10001, "参数格式校验异常");
+    VAILD_EXCEPTION(10001, "参数格式校验异常"),
+    SMS_CODE_EXCEPTION(10002, "验证码获取频率太高，请稍后再试"),
+    PRODUCT_UP_EXCEPTION(11000, "商品上架异常"),
+    USER_EXIST_EXCEPTION(15001, "用户存在"),
+    PHONE_EXIST_EXCEPTION(15002, "手机号存在"),
+    LOGINACCT_PASSWORD_INVALID_EXCEPTION(15003, "账号密码错误");
 
-    private int code;
-    private String msg;
+
+    private final int code;
+    private final String msg;
 
     BizCodeEnum(int code, String msg) {
         this.code = code;
         this.msg = msg;
     }
 
-    public int getCode() {
-        return code;
-    }
-
-    public String getMsg() {
-        return msg;
-    }
 }

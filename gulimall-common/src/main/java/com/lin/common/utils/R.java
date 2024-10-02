@@ -8,6 +8,8 @@
 
 package com.lin.common.utils;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import org.apache.http.HttpStatus;
 
 import java.util.HashMap;
@@ -20,6 +22,27 @@ import java.util.Map;
  */
 public class R extends HashMap<String, Object> {
     private static final long serialVersionUID = 1L;
+
+    // 通过key获取封装进规则的数据，利用fastjson进行类型逆转
+    public <T> T getDataByKey(String key, TypeReference<T> typeReference) {
+        Object o = get(key); // 这里默认是Map
+        String s = JSON.toJSONString(o);
+        // 逆转成指定的类型
+        return JSON.parseObject(s, typeReference);
+    }
+
+    // 利用fastjson进行类型逆转
+    public <T> T getData(TypeReference<T> typeReference) {
+        Object o = get("data"); // 这里默认是Map
+        String s = JSON.toJSONString(o);
+        // 逆转成指定的类型
+        return JSON.parseObject(s, typeReference);
+    }
+
+    public R setData(Object data) {
+        put("data", data);
+        return this;
+    }
 
     public R() {
         put("code", 0);

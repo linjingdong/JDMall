@@ -1,20 +1,17 @@
 package com.lin.gulimall.ware.controller;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Map;
 
+import com.lin.gulimall.ware.vo.FareVo;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.lin.gulimall.ware.entity.WmsWareInfoEntity;
 import com.lin.gulimall.ware.service.WmsWareInfoService;
 import com.lin.common.utils.PageUtils;
 import com.lin.common.utils.R;
-
 
 
 /**
@@ -31,11 +28,23 @@ public class WmsWareInfoController {
     private WmsWareInfoService wmsWareInfoService;
 
     /**
+     * 获取运费等详细信息
+     *
+     * @param addrId 用户地址Id
+     * @return 运费等详细信息
+     */
+    @GetMapping("/fare")
+    public R getFare(@RequestParam("addrId") Long addrId) {
+        FareVo fareVo = wmsWareInfoService.getFare(addrId);
+        return R.ok().setData(fareVo);
+    }
+
+    /**
      * 列表
      */
     @RequestMapping("/list")
     //@RequiresPermissions("ware:wmswareinfo:list")
-    public R list(@RequestParam Map<String, Object> params){
+    public R list(@RequestParam Map<String, Object> params) {
         PageUtils page = wmsWareInfoService.queryPage(params);
 
         return R.ok().put("page", page);
@@ -47,8 +56,8 @@ public class WmsWareInfoController {
      */
     @RequestMapping("/info/{id}")
     //@RequiresPermissions("ware:wmswareinfo:info")
-    public R info(@PathVariable("id") Long id){
-		WmsWareInfoEntity wmsWareInfo = wmsWareInfoService.getById(id);
+    public R info(@PathVariable("id") Long id) {
+        WmsWareInfoEntity wmsWareInfo = wmsWareInfoService.getById(id);
 
         return R.ok().put("wmsWareInfo", wmsWareInfo);
     }
@@ -58,8 +67,8 @@ public class WmsWareInfoController {
      */
     @RequestMapping("/save")
     //@RequiresPermissions("ware:wmswareinfo:save")
-    public R save(@RequestBody WmsWareInfoEntity wmsWareInfo){
-		wmsWareInfoService.save(wmsWareInfo);
+    public R save(@RequestBody WmsWareInfoEntity wmsWareInfo) {
+        wmsWareInfoService.save(wmsWareInfo);
 
         return R.ok();
     }
@@ -69,8 +78,8 @@ public class WmsWareInfoController {
      */
     @RequestMapping("/update")
     //@RequiresPermissions("ware:wmswareinfo:update")
-    public R update(@RequestBody WmsWareInfoEntity wmsWareInfo){
-		wmsWareInfoService.updateById(wmsWareInfo);
+    public R update(@RequestBody WmsWareInfoEntity wmsWareInfo) {
+        wmsWareInfoService.updateById(wmsWareInfo);
 
         return R.ok();
     }
@@ -80,8 +89,8 @@ public class WmsWareInfoController {
      */
     @RequestMapping("/delete")
     //@RequiresPermissions("ware:wmswareinfo:delete")
-    public R delete(@RequestBody Long[] ids){
-		wmsWareInfoService.removeByIds(Arrays.asList(ids));
+    public R delete(@RequestBody Long[] ids) {
+        wmsWareInfoService.removeByIds(Arrays.asList(ids));
 
         return R.ok();
     }

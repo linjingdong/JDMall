@@ -1,4 +1,4 @@
-package com.lin.gulimall.product.controller;
+package com.lin.gulimall.product.app;
 
 import java.util.Arrays;
 import java.util.List;
@@ -45,7 +45,7 @@ public class CategoryBrandRelationController {
     /**
      * 获取分类下关联的所有品牌
      * product/categorybrandrelation/brands/list
-     * 1、controller：处理接收的请求，接收和校验数据
+     * 1、app：处理接收的请求，接收和校验数据
      * 2、Service：接收controller传来的数据，进行业务处理
      * 3、controller接收Service处理完的数据，封装成页面指定的VO
      */

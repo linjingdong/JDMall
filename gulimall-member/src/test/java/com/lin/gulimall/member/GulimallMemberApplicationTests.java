@@ -1,13 +1,19 @@
 package com.lin.gulimall.member;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class GulimallMemberApplicationTests {
+import org.apache.commons.codec.digest.DigestUtils;
+import org.junit.Test;
+
+public class GulimallMemberApplicationTests {
+    @Test
+    public void contextLoads() {
+
+    }
 
     @Test
-    void contextLoads() {
+    public void MD5Test() {
+        String s = DigestUtils.md5Hex("123456");
+        System.out.println(s);
     }
 
 }

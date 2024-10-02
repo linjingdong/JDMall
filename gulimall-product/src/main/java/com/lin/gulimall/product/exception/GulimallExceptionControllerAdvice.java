@@ -19,9 +19,9 @@ import java.util.Map;
  */
 
 //@ResponseBody
-//@ControllerAdvice(basePackages = "com.lin.gulimall.product.controller")
+//@ControllerAdvice(basePackages = "com.lin.gulimall.product.app")
 @Slf4j
-@RestControllerAdvice(basePackages = "com.lin.gulimall.product.controller")
+@RestControllerAdvice(basePackages = "com.lin.gulimall.product.app")
 public class GulimallExceptionControllerAdvice {
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
     public R handleValidException(MethodArgumentNotValidException e) {

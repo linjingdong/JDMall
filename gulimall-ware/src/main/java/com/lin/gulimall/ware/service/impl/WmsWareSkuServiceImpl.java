@@ -2,6 +2,7 @@ package com.lin.gulimall.ware.service.impl;
 
 import com.lin.common.utils.R;
 import com.lin.gulimall.ware.feign.ProductFeignService;
+import com.lin.gulimall.ware.vo.SkuHasStockVo;
 import com.sun.javaws.exceptions.ExitException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -53,7 +55,7 @@ public class WmsWareSkuServiceImpl extends ServiceImpl<WmsWareSkuDao, WmsWareSku
     @Override
     public void addStock(Long skuId, Long wareId, Integer skuNum) {
         List<WmsWareSkuEntity> entities = wareSkuDao.selectList(new QueryWrapper<WmsWareSkuEntity>().eq("sku_id", skuId).eq("ware_id", wareId));
-        if(entities == null || entities.isEmpty()){
+        if (entities == null || entities.isEmpty()) {
             WmsWareSkuEntity wmsWareSkuEntity = new WmsWareSkuEntity();
             wmsWareSkuEntity.setSkuId(skuId);
             wmsWareSkuEntity.setWareId(wareId);
@@ -64,7 +66,7 @@ public class WmsWareSkuServiceImpl extends ServiceImpl<WmsWareSkuDao, WmsWareSku
                 R info = productFeignService.info(skuId);
                 Map<String, Object> data = (Map<String, Object>) info.get("skuInfo");
 
-                if(info.getCode() == 0) {
+                if (info.getCode() == 0) {
                     wmsWareSkuEntity.setSkuName((String) data.get("skuName"));
                 }
             } catch (Exception e) {
@@ -72,9 +74,21 @@ public class WmsWareSkuServiceImpl extends ServiceImpl<WmsWareSkuDao, WmsWareSku
             }
             wmsWareSkuEntity.setSkuName("");
             wareSkuDao.insert(wmsWareSkuEntity);
-        }else {
+        } else {
             wareSkuDao.addStock(skuId, wareId, skuNum);
         }
+    }
+
+    @Override
+    public List<SkuHasStockVo> getSkusHasStock(List<Long> skuIds) {
+        return skuIds.stream().map(skuId -> {
+            SkuHasStockVo skuHasStockVo = new SkuHasStockVo();
+            // 查询当前sku的总库存量
+            Long count = baseMapper.getSkuStock(skuId);
+            skuHasStockVo.setSkuId(skuId);
+            skuHasStockVo.setHasStock(count == null ? false : count > 0);
+            return skuHasStockVo;
+        }).collect(Collectors.toList());
     }
 
 }

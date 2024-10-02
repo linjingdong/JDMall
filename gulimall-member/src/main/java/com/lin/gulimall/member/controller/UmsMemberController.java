@@ -4,19 +4,20 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
+import com.lin.common.exception.BizCodeEnum;
+import com.lin.gulimall.member.exception.PhoneExistException;
+import com.lin.gulimall.member.exception.UserNameExistException;
 import com.lin.gulimall.member.feign.CouponFeignService;
+import com.lin.gulimall.member.vo.MemberLoginVo;
+import com.lin.gulimall.member.vo.MemberRegisterVo;
+import com.lin.gulimall.member.vo.SocialUser;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.lin.gulimall.member.entity.UmsMemberEntity;
 import com.lin.gulimall.member.service.UmsMemberService;
 import com.lin.common.utils.PageUtils;
 import com.lin.common.utils.R;
-
 
 
 /**
@@ -46,12 +47,44 @@ public class UmsMemberController {
 
     }
 
+    @PostMapping("/oauth2/login")
+    public R oauthLogin(@RequestBody SocialUser vo) {
+        UmsMemberEntity entity = umsMemberService.login(vo);
+        if (entity != null) {
+            return R.ok().setData(entity);
+        } else {
+            return R.error(BizCodeEnum.LOGINACCT_PASSWORD_INVALID_EXCEPTION.getCode(), BizCodeEnum.LOGINACCT_PASSWORD_INVALID_EXCEPTION.getMsg());
+        }
+    }
+
+    @PostMapping("/login")
+    public R login(@RequestBody MemberLoginVo vo) {
+        UmsMemberEntity entity = umsMemberService.login(vo);
+        if (entity != null) {
+            return R.ok().setData(entity);
+        } else {
+            return R.error(BizCodeEnum.LOGINACCT_PASSWORD_INVALID_EXCEPTION.getCode(), BizCodeEnum.LOGINACCT_PASSWORD_INVALID_EXCEPTION.getMsg());
+        }
+    }
+
+    @PostMapping("/regist")
+    public R register(@RequestBody MemberRegisterVo vo) {
+        try {
+            umsMemberService.register(vo);
+        } catch (PhoneExistException e) {
+            R.error(BizCodeEnum.PHONE_EXIST_EXCEPTION.getCode(), BizCodeEnum.PHONE_EXIST_EXCEPTION.getMsg());
+        } catch (UserNameExistException e) {
+            R.error(BizCodeEnum.USER_EXIST_EXCEPTION.getCode(), BizCodeEnum.USER_EXIST_EXCEPTION.getMsg());
+        }
+        return R.ok();
+    }
+
     /**
      * 列表
      */
     @RequestMapping("/list")
     //@RequiresPermissions("member:umsmember:list")
-    public R list(@RequestParam Map<String, Object> params){
+    public R list(@RequestParam Map<String, Object> params) {
         PageUtils page = umsMemberService.queryPage(params);
 
         return R.ok().put("page", page);
@@ -63,8 +96,8 @@ public class UmsMemberController {
      */
     @RequestMapping("/info/{id}")
     //@RequiresPermissions("member:umsmember:info")
-    public R info(@PathVariable("id") Long id){
-		UmsMemberEntity umsMember = umsMemberService.getById(id);
+    public R info(@PathVariable("id") Long id) {
+        UmsMemberEntity umsMember = umsMemberService.getById(id);
 
         return R.ok().put("umsMember", umsMember);
     }
@@ -74,8 +107,8 @@ public class UmsMemberController {
      */
     @RequestMapping("/save")
     //@RequiresPermissions("member:umsmember:save")
-    public R save(@RequestBody UmsMemberEntity umsMember){
-		umsMemberService.save(umsMember);
+    public R save(@RequestBody UmsMemberEntity umsMember) {
+        umsMemberService.save(umsMember);
 
         return R.ok();
     }
@@ -85,8 +118,8 @@ public class UmsMemberController {
      */
     @RequestMapping("/update")
     //@RequiresPermissions("member:umsmember:update")
-    public R update(@RequestBody UmsMemberEntity umsMember){
-		umsMemberService.updateById(umsMember);
+    public R update(@RequestBody UmsMemberEntity umsMember) {
+        umsMemberService.updateById(umsMember);
 
         return R.ok();
     }
@@ -96,8 +129,8 @@ public class UmsMemberController {
      */
     @RequestMapping("/delete")
     //@RequiresPermissions("member:umsmember:delete")
-    public R delete(@RequestBody Long[] ids){
-		umsMemberService.removeByIds(Arrays.asList(ids));
+    public R delete(@RequestBody Long[] ids) {
+        umsMemberService.removeByIds(Arrays.asList(ids));
 
         return R.ok();
     }
