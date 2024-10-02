@@ -5,11 +5,34 @@ spring:
     url: jdbc:mysql://192.168.233.131:3306/gulimall_oms
     driver-class-name: com.mysql.cj.jdbc.Driver
   cloud:
+    # nacos
     nacos:
       discovery:
         server-addr: 127.0.0.1:8848
   application:
     name: gulimall-order
+  # rabbitmq
+  rabbitmq:
+    addresses: 192.168.233.131
+    port: 5672
+    virtual-host: /
+    publisher-confirms: true #开启发送端确定模式
+    publisher-returns: true
+    template:
+      mandatory: true #只要抵达队列，以异步的方式优先回调我们这个returnConfirm
+    listener:
+      simple:
+        acknowledge-mode: manual # 消费者手动确认
+  # thymeleaf
+  thymeleaf:
+    cache: false
+  # session
+  session:
+    store-type: redis
+  # redis
+  redis:
+    host: 192.168.233.131
+    port: 6379
 mybatis-plus:
   mapper-locations: classpath:/mapper/**/*.xml
   global-config:
@@ -17,3 +40,9 @@ mybatis-plus:
       id-type: auto
 server:
   port: 9000
+
+
+
+
+
+
