@@ -19,6 +19,11 @@ public class SubmitOrderResponseVo {
     /*
     错误状态码
      */
-    private Integer code; // 0 成功 ；1 失败
+    private Integer code; // 0 成功；1 令牌验证失败；2 验价失败
+
+    /*
+    错误信息
+     */
+    private String error;
 
 }
