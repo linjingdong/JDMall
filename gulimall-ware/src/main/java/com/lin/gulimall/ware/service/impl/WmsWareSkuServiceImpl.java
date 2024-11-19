@@ -1,11 +1,15 @@
 package com.lin.gulimall.ware.service.impl;
 
+import com.lin.common.exception.NoStockException;
 import com.lin.common.utils.R;
 import com.lin.gulimall.ware.feign.ProductFeignService;
 import com.lin.gulimall.ware.vo.SkuHasStockVo;
-import com.sun.javaws.exceptions.ExitException;
+import com.lin.gulimall.ware.vo.WareSkuLockVo;
+import lombok.Data;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cloud.client.actuator.HasFeatures;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,6 +25,7 @@ import com.lin.common.utils.Query;
 import com.lin.gulimall.ware.dao.WmsWareSkuDao;
 import com.lin.gulimall.ware.entity.WmsWareSkuEntity;
 import com.lin.gulimall.ware.service.WmsWareSkuService;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service("wmsWareSkuService")
@@ -29,6 +34,9 @@ public class WmsWareSkuServiceImpl extends ServiceImpl<WmsWareSkuDao, WmsWareSku
     private WmsWareSkuDao wareSkuDao;
     @Autowired
     private ProductFeignService productFeignService;
+    @Qualifier("feignFeature")
+    @Autowired
+    private HasFeatures feignFeature;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -89,6 +97,63 @@ public class WmsWareSkuServiceImpl extends ServiceImpl<WmsWareSkuDao, WmsWareSku
             skuHasStockVo.setHasStock(count == null ? false : count > 0);
             return skuHasStockVo;
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * 存商品在哪个仓库有库存的映射
+     */
+    @Data
+    static class SkuWareHasStock {
+        private Long skuId;
+        private Integer num;
+        private List<Long> wareIds;
+    }
+
+    /**
+     * 为订单的每一件商品锁定库存，事务会自动抛出运行时异常
+     *
+     * @return 是否锁定成功
+     */
+    @Transactional(rollbackFor = NoStockException.class)
+    @Override
+    public Boolean orderLockStock(WareSkuLockVo vo) {
+        // 1、找到每个商品在哪个仓库有库存
+        List<SkuWareHasStock> stocks = vo.getLocks().stream().map(item -> {
+            SkuWareHasStock stock = new SkuWareHasStock();
+            Long skuId = item.getSkuId();
+            // 查询商品在哪个仓库有库存
+            List<Long> wareIds = wareSkuDao.listWareIdHasSkuStock(skuId);
+            stock.setSkuId(skuId);
+            stock.setNum(item.getCount());
+            stock.setWareIds(wareIds);
+            return stock;
+        }).collect(Collectors.toList());
+
+        // 2、锁定库存
+        for (SkuWareHasStock stock : stocks) {
+            boolean stockFlag = false;
+            List<Long> wareIds = stock.getWareIds();
+            Long skuId = stock.getSkuId();
+            if (null == wareIds || wareIds.isEmpty()) {
+                throw new NoStockException(skuId);
+            }
+
+            for (Long wareId : wareIds) {
+                Long count = wareSkuDao.lockSkuStock(skuId, wareId, stock.getNum());
+                if (count == 1) {
+                    stockFlag = true;
+                    break;
+                } else {
+                    // 当前仓库锁定失败，尝试下一个仓库
+                }
+            }
+            if (!stockFlag) {
+                throw new NoStockException(skuId);
+            }
+        }
+
+        // 3、肯定全部都是锁定成功的
+        return true;
     }
 
 }

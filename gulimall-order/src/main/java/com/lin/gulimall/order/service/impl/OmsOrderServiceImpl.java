@@ -2,6 +2,7 @@ package com.lin.gulimall.order.service.impl;
 
 import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.lin.common.exception.NoStockException;
 import com.lin.common.utils.R;
 import com.lin.common.vo.MemberRespVo;
 import com.lin.gulimall.order.config.LoginUserInterceptor;
@@ -119,12 +120,13 @@ public class OmsOrderServiceImpl extends ServiceImpl<OmsOrderDao, OmsOrderEntity
         return confirmVo;
     }
 
-    @Transactional
+    @Transactional(rollbackFor = NoStockException.class)
     @Override
     public SubmitOrderResponseVo submitOrder(OrderSubmitVo vo) {
         MemberRespVo memberRespVo = LoginUserInterceptor.threadLocal.get();
         orderSubmitThreadLocal.set(vo);
         SubmitOrderResponseVo response = new SubmitOrderResponseVo();
+        response.setCode(0);
 
         // 验证令牌防止幂等性【令牌的对比和删除必须保证原子性（脚本）】
         // 原子验证令牌和删除令牌
@@ -147,16 +149,39 @@ public class OmsOrderServiceImpl extends ServiceImpl<OmsOrderDao, OmsOrderEntity
             if (Math.abs(orderCreateTo.getPayPrice().subtract(vo.getPayPrice()).doubleValue()) < 0.1) {
                 // 3、保存订单
                 saveOrder(orderCreateTo);
+                // 4、锁定库存，有异常需要回滚保存订单的操作（订单号，所有订单项：skuId, skuName, num）
+                WareSkuLockVo lockVo = new WareSkuLockVo();
+                List<OrderItemVo> lockItem = orderCreateTo.getOrderItems().stream().map(item -> {
+                    OrderItemVo orderItemVo = new OrderItemVo();
+                    orderItemVo.setSkuId(item.getSkuId());
+                    orderItemVo.setCount(item.getSkuQuantity());
+                    orderItemVo.setTitle(item.getSkuName());
+                    return orderItemVo;
+                }).collect(Collectors.toList());
+                lockVo.setOrderSn(orderCreateTo.getOrder().getOrderSn());
+                lockVo.setLocks(lockItem);
 
-                // 4、锁定库存，有异常需要回滚保存订单的操作
+                R r = wmsFeignService.orderLockStock(lockVo);// 锁定库存
 
+                if (0 == r.getCode()) {
+                    // 锁定成功
+                    response.setOrder(orderCreateTo.getOrder());
+                    return response;
+                } else {
+                    // 锁定异常
+                    try {
+                        response.setCode(3);
+                        return response;
+                    } catch (NoStockException e ) {
+                        throw new NoStockException();
+                    }
+                }
             } else {
                 response.setCode(2);
                 response.setError("验价失败");
                 return response;
             }
         }
-        return response;
     }
 
     /**
@@ -282,8 +307,8 @@ public class OmsOrderServiceImpl extends ServiceImpl<OmsOrderDao, OmsOrderEntity
             return orderItemVoList.stream().map(cartItem -> {
                 OmsOrderItemEntity orderItem = new OmsOrderItemEntity();
                 // 1、订单信息
-                OmsOrderItemEntity orderItemEntity = buildOrderItem(cartItem);
-                orderItemEntity.setOrderSn(orderSn);
+                orderItem = buildOrderItem(cartItem);
+                orderItem.setOrderSn(orderSn);
                 return orderItem;
             }).collect(Collectors.toList());
         }

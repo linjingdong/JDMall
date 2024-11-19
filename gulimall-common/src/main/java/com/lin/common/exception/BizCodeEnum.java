@@ -16,6 +16,7 @@ import lombok.Getter;
  * 13: 购物车
  * 14: 物流
  * 15: 用户
+ * 20: 库存
  * @Date 2024/5/29 19:36
  * @Author Lin
  * @Version 1.0
@@ -28,8 +29,8 @@ public enum BizCodeEnum {
     PRODUCT_UP_EXCEPTION(11000, "商品上架异常"),
     USER_EXIST_EXCEPTION(15001, "用户存在"),
     PHONE_EXIST_EXCEPTION(15002, "手机号存在"),
-    LOGINACCT_PASSWORD_INVALID_EXCEPTION(15003, "账号密码错误");
-
+    LOGINACCT_PASSWORD_INVALID_EXCEPTION(15003, "账号密码错误"),
+    NO_STOCK_EXCEPTION(21000, "库存锁定异常");
 
     private final int code;
     private final String msg;
