@@ -4,6 +4,7 @@ import com.lin.common.constant.AuthConstant;
 import com.lin.common.vo.MemberRespVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
@@ -21,6 +22,14 @@ public class LoginUserInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         MemberRespVo attribute = (MemberRespVo) request.getSession().getAttribute(AuthConstant.LOGIN_USER);
+
+        // 匹配路径放行
+        String uri = request.getRequestURI();
+        boolean match = new AntPathMatcher().match("/order/omsorder/order/**", uri);
+        if (match) {
+            return true;
+        }
+
         if (attribute != null) {
             threadLocal.set(attribute);
             return true;

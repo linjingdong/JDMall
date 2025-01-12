@@ -4,17 +4,12 @@ import java.util.Arrays;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.lin.gulimall.order.entity.OmsOrderEntity;
 import com.lin.gulimall.order.service.OmsOrderService;
 import com.lin.common.utils.PageUtils;
 import com.lin.common.utils.R;
-
 
 
 /**
@@ -30,12 +25,19 @@ public class OmsOrderController {
     @Autowired
     private OmsOrderService omsOrderService;
 
+    // 根据订单号【orderSn】获取订单信息
+    @GetMapping("/order/{orderSn}")
+    public R getOrderByOrderSn(@PathVariable("orderSn") String orderSn) {
+        OmsOrderEntity order = omsOrderService.getOrderByOrderSn(orderSn);
+        return R.ok().setData(order);
+    }
+
     /**
      * 列表
      */
     @RequestMapping("/list")
     //@RequiresPermissions("order:omsorder:list")
-    public R list(@RequestParam Map<String, Object> params){
+    public R list(@RequestParam Map<String, Object> params) {
         PageUtils page = omsOrderService.queryPage(params);
 
         return R.ok().put("page", page);
@@ -47,8 +49,8 @@ public class OmsOrderController {
      */
     @RequestMapping("/info/{id}")
     //@RequiresPermissions("order:omsorder:info")
-    public R info(@PathVariable("id") Long id){
-		OmsOrderEntity omsOrder = omsOrderService.getById(id);
+    public R info(@PathVariable("id") Long id) {
+        OmsOrderEntity omsOrder = omsOrderService.getById(id);
 
         return R.ok().put("omsOrder", omsOrder);
     }
@@ -58,8 +60,8 @@ public class OmsOrderController {
      */
     @RequestMapping("/save")
     //@RequiresPermissions("order:omsorder:save")
-    public R save(@RequestBody OmsOrderEntity omsOrder){
-		omsOrderService.save(omsOrder);
+    public R save(@RequestBody OmsOrderEntity omsOrder) {
+        omsOrderService.save(omsOrder);
 
         return R.ok();
     }
@@ -69,8 +71,8 @@ public class OmsOrderController {
      */
     @RequestMapping("/update")
     //@RequiresPermissions("order:omsorder:update")
-    public R update(@RequestBody OmsOrderEntity omsOrder){
-		omsOrderService.updateById(omsOrder);
+    public R update(@RequestBody OmsOrderEntity omsOrder) {
+        omsOrderService.updateById(omsOrder);
 
         return R.ok();
     }
@@ -80,8 +82,8 @@ public class OmsOrderController {
      */
     @RequestMapping("/delete")
     //@RequiresPermissions("order:omsorder:delete")
-    public R delete(@RequestBody Long[] ids){
-		omsOrderService.removeByIds(Arrays.asList(ids));
+    public R delete(@RequestBody Long[] ids) {
+        omsOrderService.removeByIds(Arrays.asList(ids));
 
         return R.ok();
     }

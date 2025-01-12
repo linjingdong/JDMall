@@ -13,9 +13,7 @@ import org.springframework.session.data.redis.config.annotation.web.http.EnableR
 @SpringBootApplication
 @EnableDiscoveryClient
 public class GulimallOrderApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(GulimallOrderApplication.class, args);
     }
-
 }

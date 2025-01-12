@@ -23,6 +23,9 @@ public class MyRabbitConfig {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    /**
+     * 使用JSON序列化机制，进行消息转换
+     */
     @Bean
     public MessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();

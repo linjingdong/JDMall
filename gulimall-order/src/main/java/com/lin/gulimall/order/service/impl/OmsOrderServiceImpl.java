@@ -166,13 +166,15 @@ public class OmsOrderServiceImpl extends ServiceImpl<OmsOrderDao, OmsOrderEntity
                 if (0 == r.getCode()) {
                     // 锁定成功
                     response.setOrder(orderCreateTo.getOrder());
+
+                    int i = 10 / 0;
                     return response;
                 } else {
                     // 锁定异常
                     try {
                         response.setCode(3);
                         return response;
-                    } catch (NoStockException e ) {
+                    } catch (NoStockException e) {
                         throw new NoStockException();
                     }
                 }
@@ -182,6 +184,11 @@ public class OmsOrderServiceImpl extends ServiceImpl<OmsOrderDao, OmsOrderEntity
                 return response;
             }
         }
+    }
+
+    @Override
+    public OmsOrderEntity getOrderByOrderSn(String orderSn) {
+        return this.getOne(new QueryWrapper<OmsOrderEntity>().eq("order_sn", orderSn));
     }
 
     /**
@@ -347,9 +354,7 @@ public class OmsOrderServiceImpl extends ServiceImpl<OmsOrderDao, OmsOrderEntity
         orderItem.setCouponAmount(new BigDecimal("0"));
         orderItem.setIntegrationAmount(new BigDecimal("0"));
         BigDecimal origin = orderItem.getSkuPrice().multiply(new BigDecimal(orderItem.getSkuQuantity()));
-        BigDecimal realAmount = origin.subtract(orderItem.getCouponAmount()).
-                subtract(orderItem.getPromotionAmount()).
-                subtract(orderItem.getIntegrationAmount());
+        BigDecimal realAmount = origin.subtract(orderItem.getCouponAmount()).subtract(orderItem.getPromotionAmount()).subtract(orderItem.getIntegrationAmount());
         orderItem.setRealAmount(realAmount); // 当前订单项的实际总金额【总额-优惠】
 
         return orderItem;

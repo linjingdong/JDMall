@@ -28,8 +28,11 @@ public interface OmsOrderService extends IService<OmsOrderEntity> {
 
     /**
      * 下单
+     *
      * @param vo 下单是提交的数据
      */
     SubmitOrderResponseVo submitOrder(OrderSubmitVo vo);
+
+    OmsOrderEntity getOrderByOrderSn(String orderSn);
 }
 

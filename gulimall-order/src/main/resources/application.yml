@@ -13,7 +13,6 @@ spring:
     name: gulimall-order
   # rabbitmq
   rabbitmq:
-    addresses: 192.168.233.131
     port: 5672
     virtual-host: /
     publisher-confirms: true #开启发送端确定模式
@@ -23,6 +22,7 @@ spring:
     listener:
       simple:
         acknowledge-mode: manual # 消费者手动确认
+    host: 192.168.233.131
   # thymeleaf
   thymeleaf:
     cache: false
