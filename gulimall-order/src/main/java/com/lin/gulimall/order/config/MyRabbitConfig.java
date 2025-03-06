@@ -8,6 +8,7 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import javax.annotation.PostConstruct;
@@ -18,10 +19,14 @@ import javax.annotation.PostConstruct;
  * @Author Lin
  * @Version 1.0
  */
-@Configuration
+@Component
 public class MyRabbitConfig {
-    @Autowired
     private RabbitTemplate rabbitTemplate;
+
+    @Autowired
+    public void setRabbitTemplate(RabbitTemplate rabbitTemplate) {
+        this.rabbitTemplate = rabbitTemplate;
+    }
 
     /**
      * 使用JSON序列化机制，进行消息转换
@@ -34,7 +39,7 @@ public class MyRabbitConfig {
     /**
      * 定制RabbitTemplate
      */
-    @PostConstruct // MyRabbitConfig对象创建完成之后，执行这个方法
+    @PostConstruct// MyRabbitConfig对象创建完成之后，执行这个方法
     public void initConfirmCallback() {
         rabbitTemplate.setConfirmCallback(new RabbitTemplate.ConfirmCallback() {
             /**

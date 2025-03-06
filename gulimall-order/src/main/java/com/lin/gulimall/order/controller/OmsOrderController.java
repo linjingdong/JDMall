@@ -43,6 +43,16 @@ public class OmsOrderController {
         return R.ok().put("page", page);
     }
 
+    /**
+     * 分页查询当前用户的订单信息
+     * @param params 分页参数
+     * @return 分页查询的订单数据
+     */
+    @PostMapping("/listWithItem")
+    public R listWithItem(@RequestBody Map<String, Object> params) {
+        PageUtils page = omsOrderService.queryOrderWithItem(params);
+        return R.ok().put("page", page);
+    }
 
     /**
      * 信息

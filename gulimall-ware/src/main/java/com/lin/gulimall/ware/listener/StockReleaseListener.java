@@ -1,5 +1,6 @@
 package com.lin.gulimall.ware.listener;
 
+import com.lin.common.to.OrderTo;
 import com.lin.common.to.mq.StockDetailsTo;
 import com.lin.common.to.mq.StockLockedTo;
 import com.lin.common.utils.R;
@@ -33,6 +34,17 @@ public class StockReleaseListener {
         log.info("收到解锁库存消息，messageId = {}", message.getMessageProperties().getMessageId());
         try {
             wareSkuService.unLockStock(stockLockedTo);
+            channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
+        } catch (Exception e) {
+            channel.basicReject(message.getMessageProperties().getDeliveryTag(), true);
+        }
+    }
+
+    @RabbitHandler
+    public void handleOrderCanceledRelease(OrderTo order, Message message, Channel channel) throws IOException {
+        log.info("收到订单关闭消息 message {}，准备解锁库存...", message.getMessageProperties());
+        try {
+            wareSkuService.unLockStock(order);
             channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
         } catch (Exception e) {
             channel.basicReject(message.getMessageProperties().getDeliveryTag(), true);

@@ -1,8 +1,7 @@
-package com.lin.gulimall.order.config;
+package com.lin.gulimall.member.interceptor;
 
 import com.lin.common.constant.AuthConstant;
 import com.lin.common.vo.MemberRespVo;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -25,10 +24,8 @@ public class LoginUserInterceptor implements HandlerInterceptor {
 
         // 匹配路径放行
         String uri = request.getRequestURI();
-        AntPathMatcher antPathMatcher = new AntPathMatcher();
-        boolean match = antPathMatcher.match("/order/omsorder/order/**", uri);
-        boolean notifyMatch = antPathMatcher.match("/payed/notify", uri);
-        if (match || notifyMatch) {
+        boolean match = new AntPathMatcher().match("/member/**", uri);
+        if (match) {
             return true;
         }
 

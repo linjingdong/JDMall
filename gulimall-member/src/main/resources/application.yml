@@ -10,6 +10,12 @@ spring:
         server-addr: 127.0.0.1:8848
   application:
     name: gulimall-member
+  thymeleaf:
+    cache: false
+  session:
+    store-type: redis
+  redis:
+    host: 192.168.233.131
 mybatis-plus:
   mapper-locations: classpath:/mapper/**/*.xml
   global-config:

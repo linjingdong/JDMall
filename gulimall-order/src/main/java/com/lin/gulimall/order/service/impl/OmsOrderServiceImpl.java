@@ -3,25 +3,34 @@ package com.lin.gulimall.order.service.impl;
 import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.lin.common.exception.NoStockException;
+import com.lin.common.to.OrderTo;
 import com.lin.common.utils.R;
 import com.lin.common.vo.MemberRespVo;
 import com.lin.gulimall.order.config.LoginUserInterceptor;
 import com.lin.gulimall.order.constant.OrderConstant;
 import com.lin.gulimall.order.entity.OmsOrderItemEntity;
+import com.lin.gulimall.order.entity.OmsPaymentInfoEntity;
 import com.lin.gulimall.order.enume.OrderStatusEnum;
 import com.lin.gulimall.order.feign.CartFeignService;
 import com.lin.gulimall.order.feign.MemberFeignService;
 import com.lin.gulimall.order.feign.ProductFeignService;
 import com.lin.gulimall.order.feign.WmsFeignService;
 import com.lin.gulimall.order.service.OmsOrderItemService;
+import com.lin.gulimall.order.service.OmsPaymentInfoService;
 import com.lin.gulimall.order.to.OrderCreateTo;
 import com.lin.gulimall.order.vo.*;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -61,6 +70,13 @@ public class OmsOrderServiceImpl extends ServiceImpl<OmsOrderDao, OmsOrderEntity
     private StringRedisTemplate redisTemplate;
     @Autowired
     private ThreadPoolExecutor executor;
+    @Lazy
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+    @Autowired
+    private OmsOrderItemServiceImpl omsOrderItemService;
+    @Autowired
+    private OmsPaymentInfoService paymentInfoService;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -166,8 +182,9 @@ public class OmsOrderServiceImpl extends ServiceImpl<OmsOrderDao, OmsOrderEntity
                 if (0 == r.getCode()) {
                     // 锁定成功
                     response.setOrder(orderCreateTo.getOrder());
-
-                    int i = 10 / 0;
+                    // int i = 10 / 0; // 模拟异常
+                    // TODO 订单创建成功，发送消息
+                    rabbitTemplate.convertAndSend("order-event-exchange", "order.create.order", orderCreateTo.getOrder());
                     return response;
                 } else {
                     // 锁定异常
@@ -189,6 +206,87 @@ public class OmsOrderServiceImpl extends ServiceImpl<OmsOrderDao, OmsOrderEntity
     @Override
     public OmsOrderEntity getOrderByOrderSn(String orderSn) {
         return this.getOne(new QueryWrapper<OmsOrderEntity>().eq("order_sn", orderSn));
+    }
+
+    /**
+     * 关闭订单
+     *
+     * @param order 订单信息
+     */
+    @Override
+    public void closeOrder(OmsOrderEntity order) {
+        OmsOrderEntity oldOrder = this.getOrderByOrderSn(order.getOrderSn());
+        if (OrderStatusEnum.CREATE_NEW.getCode().equals(oldOrder.getStatus())) {
+            OmsOrderEntity newOrder = new OmsOrderEntity();
+            newOrder.setId(oldOrder.getId());
+            newOrder.setStatus(OrderStatusEnum.CANCLED.getCode());
+            this.updateById(newOrder);
+            OrderTo orderTo = new OrderTo();
+            BeanUtils.copyProperties(oldOrder, orderTo);
+            try {
+                // 保证消息一定会发出去，每一个消息都可以做好日志记录(给数据库保存每一个消息的详细信息)
+                // 定期扫描数据库，将发送失败的消息重新发送一次
+                rabbitTemplate.convertAndSend("order-event-exchange", "order.release.other.stock", orderTo);
+            } catch (Exception e) {
+                // 将没发送成功的消息重新发送，在发送回调上面去修改
+            }
+        }
+    }
+
+    @Override
+    public PayVo getOrderPay(String orderSn) {
+        OmsOrderEntity order = this.getOrderByOrderSn(orderSn);
+        List<OmsOrderItemEntity> orderItems = omsOrderItemService.list(new QueryWrapper<OmsOrderItemEntity>().eq("order_sn", orderSn));
+
+        PayVo payVo = new PayVo();
+        payVo.setBody(orderItems.get(0).getSkuAttrsVals());
+        payVo.setSubject(orderItems.get(0).getSkuName());
+        payVo.setOut_trade_no(orderSn);
+        String realAmount = order.getPayAmount().setScale(2, RoundingMode.UP).toString();
+        payVo.setTotal_amount(realAmount);
+        return payVo;
+    }
+
+    @Override
+    public PageUtils queryOrderWithItem(Map<String, Object> params) {
+        MemberRespVo memberRespVo = LoginUserInterceptor.threadLocal.get();
+
+        IPage<OmsOrderEntity> page = this.page(new Query<OmsOrderEntity>().getPage(params),new QueryWrapper<OmsOrderEntity>()
+                        .eq("member_id", memberRespVo.getId())
+                        .orderByDesc("modify_time")
+        );
+
+        List<OmsOrderEntity> result = page.getRecords().stream().map(order -> {
+            List<OmsOrderItemEntity> orderItem = omsOrderItemService.list(new QueryWrapper<OmsOrderItemEntity>()
+                            .eq("order_sn", order.getOrderSn()));
+            order.setOrderItems(orderItem);
+            return order;
+        }).collect(Collectors.toList());
+
+        page.setRecords(result);
+        return new PageUtils(page);
+    }
+
+    @Override
+    public String handlePayResult(PayAsyncVo vo) {
+        // 1、保存交易流水，用于对账
+        OmsPaymentInfoEntity paymentInfo = new OmsPaymentInfoEntity();
+        paymentInfo.setOrderSn(vo.getOut_trade_no());
+        paymentInfo.setAlipayTradeNo(vo.getTrade_no());
+        paymentInfo.setPaymentStatus(vo.getTrade_status());
+        paymentInfo.setTotalAmount(new BigDecimal(vo.getTotal_amount()));
+        paymentInfo.setSubject(vo.getSubject());
+        paymentInfo.setCallbackTime(vo.getNotify_time());
+        paymentInfo.setCreateTime(new Date());
+        paymentInfoService.save(paymentInfo);
+
+        String orderSn = vo.getOut_trade_no();
+        if ("TRADE_SUCCESS".equals(vo.getTrade_status())){
+            this.baseMapper.updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode());
+        } else if ("TRADE_FINISHED".equals(vo.getTrade_status())) {
+            this.baseMapper.updateOrderStatus(orderSn, OrderStatusEnum.RECIEVED.getCode());
+        }
+         return "success";
     }
 
     /**

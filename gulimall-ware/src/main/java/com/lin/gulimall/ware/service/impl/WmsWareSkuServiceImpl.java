@@ -2,6 +2,7 @@ package com.lin.gulimall.ware.service.impl;
 
 import com.alibaba.fastjson.TypeReference;
 import com.lin.common.exception.NoStockException;
+import com.lin.common.to.OrderTo;
 import com.lin.common.to.mq.StockDetailsTo;
 import com.lin.common.to.mq.StockLockedTo;
 import com.lin.common.utils.R;
@@ -251,5 +252,19 @@ public class WmsWareSkuServiceImpl extends ServiceImpl<WmsWareSkuDao, WmsWareSku
         wareOrderTaskDetailEntity.setLockStatus(2);
         wareOrderTaskDetailService.updateById(wareOrderTaskDetailEntity); // 更新工作单状态
         wareSkuDao.unLockStock(skuId, wareId, num);
+    }
+
+    // 防止订单服务卡顿，导致订单状态消息一直改不了，库存消息优先到期
+    @Transactional
+    @Override
+    public void unLockStock(OrderTo orderTo) {
+        WmsWareOrderTaskEntity wareOrderTask = wareOrderTaskService.getTaskByOrderSn(orderTo.getOrderSn());
+        List<WmsWareOrderTaskDetailEntity> wareOrderTaskDetails = wareOrderTaskDetailService.list(new QueryWrapper<WmsWareOrderTaskDetailEntity>()
+                .eq("task_id", wareOrderTask.getId())
+                .eq("lock_status", 1));
+
+        for (WmsWareOrderTaskDetailEntity detail : wareOrderTaskDetails) {
+            unLockStock(detail.getId(), detail.getSkuId(), detail.getWareId(), detail.getSkuNum());
+        }
     }
 }

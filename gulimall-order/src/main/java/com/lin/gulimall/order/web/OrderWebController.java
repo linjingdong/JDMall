@@ -2,7 +2,6 @@ package com.lin.gulimall.order.web;
 
 import com.lin.gulimall.order.service.OmsOrderService;
 import com.lin.gulimall.order.vo.OrderConfirmVo;
-import com.lin.gulimall.order.vo.OrderItemVo;
 import com.lin.gulimall.order.vo.OrderSubmitVo;
 import com.lin.gulimall.order.vo.SubmitOrderResponseVo;
 import lombok.extern.slf4j.Slf4j;

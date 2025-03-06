@@ -1,6 +1,7 @@
 package com.lin.gulimall.ware.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.lin.common.to.OrderTo;
 import com.lin.common.to.mq.StockLockedTo;
 import com.lin.common.utils.PageUtils;
 import com.lin.gulimall.ware.entity.WmsWareSkuEntity;
@@ -29,5 +30,7 @@ public interface WmsWareSkuService extends IService<WmsWareSkuEntity> {
     Boolean orderLockStock(WareSkuLockVo vo);
 
     void unLockStock(StockLockedTo stockLockedTo);
+
+    void unLockStock(OrderTo orderTo);
 }
 
